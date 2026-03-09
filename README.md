@@ -23,6 +23,10 @@ UPI Secure Pay AI is a hackathon-ready fraud detection system that combines 5 ad
 - **REST API** - Easy integration with banks and payment apps
 - **Async Architecture** - Built with FastAPI + asyncio
 - **Scalable** - Supports Redis caching and Kafka streaming
+- **Behavioral Biometrics** - Real-time scam-call detection
+  - Phone call detection during transactions
+  - Screen sharing monitoring
+  - Typing velocity analysis
 
 ## 🏗️ Architecture
 
@@ -32,10 +36,13 @@ UPI Secure Pay AI is a hackathon-ready fraud detection system that combines 5 ad
 ├─────────────────────────────────────────────────────────┤
 │  API Layer: /api/v1/fraud-check, /health, /analytics   │
 ├─────────────────────────────────────────────────────────┤
-│  ML Ensemble: 5 Models (LightGBM, Transformer,        │
+│  ML Ensemble: 5 Models (LightGBM, Transformer,          │
 │                GNN, TGN, LLaMA)                        │
 ├─────────────────────────────────────────────────────────┤
-│  Data Layer: SQLite, Redis, Kafka                      │
+│  SafetyRuleEngine: Pre-ML fraud prevention            │
+│  - Behavioral Biometrics (Scam-Call Detection)         │
+├─────────────────────────────────────────────────────────┤
+│  Data Layer: SQLite, Redis, Kafka                       │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -70,6 +77,19 @@ uvicorn app.main:app --reload --port 8000
 ```bash
 python test_api.py
 ```
+
+### Run the Dashboard
+
+```bash
+# Terminal 1: Start the backend
+cd backend
+uvicorn app.main:app --reload --port 8000
+
+# Terminal 2: Start the dashboard
+streamlit run dashboard.py
+```
+
+The dashboard will open at http://localhost:8501
 
 ## 📡 API Endpoints
 
@@ -134,6 +154,19 @@ curl -X POST http://localhost:8000/api/v1/fraud-check \
 | TGN | Temporal/time-series patterns |
 | LLaMA | Merchant behavior NLP |
 
+## 🛡️ SafetyRuleEngine
+
+The SafetyRuleEngine is a **pre-ML gatekeeper** that runs BEFORE any ML models to catch obvious fraud instantly:
+
+| Rule | Condition | Action |
+|------|-----------|--------|
+| DEVICE_ROOTED | Device is rooted/jailbroken | BLOCK → Level 3 |
+| MERCHANT_SCAM_KEYWORD | Suspicious merchant name | LEVEL 3 |
+| CRITICAL_AMOUNT | Amount > ₹90,000 | LEVEL 3 |
+| SCAM_CALL_DETECTED | On phone call + amount > ₹10,000 | LEVEL 3 |
+| SCREEN_SHARING | Screen sharing active | LEVEL 3 |
+| TYPING_ANOMALY | Abnormal typing velocity | LEVEL 3 |
+
 ## 🛠️ Tech Stack
 
 - **Backend**: Python, FastAPI
@@ -145,23 +178,27 @@ curl -X POST http://localhost:8000/api/v1/fraud-check \
 ## 📁 Project Structure
 
 ```
-backend/
-├── app/
-│   ├── main.py              # FastAPI app
-│   ├── config.py            # Settings
-│   ├── database.py          # DB models
-│   ├── cache.py             # Redis
-│   ├── kafka/               # Kafka producer
-│   ├── ml/                  # ML models
-│   │   ├── lightgbm_model.py
-│   │   ├── transformer_model.py
-│   │   ├── gnn_model.py
-│   │   ├── tgn_model.py
-│   │   └── llm_model.py
-│   ├── models/              # Pydantic models
-│   └── routers/             # API endpoints
-├── requirements.txt
-├── test_api.py
+UPI-SECURE-PAY/
+├── backend/                   # FastAPI backend
+│   ├── app/
+│   │   ├── main.py              # FastAPI app
+│   │   ├── config.py            # Settings
+│   │   ├── database.py          # DB models
+│   │   ├── cache.py             # Redis
+│   │   ├── ml_orchestrator.py  # Fraud Cascade Engine
+│   │   ├── kafka/               # Kafka producer
+│   │   ├── ml/                  # ML models
+│   │   │   ├── lightgbm_model.py
+│   │   │   ├── transformer_model.py
+│   │   │   ├── gnn_model.py
+│   │   │   ├── tgn_model.py
+│   │   │   └── llm_model.py
+│   │   ├── models/              # Pydantic models
+│   │   └── routers/             # API endpoints
+│   ├── requirements.txt
+│   └── test_api.py
+├── dashboard.py               # Streamlit dashboard
+├── requirements.txt          # Root requirements
 └── README.md
 ```
 
