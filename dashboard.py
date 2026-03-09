@@ -31,7 +31,8 @@ def init_session_state():
 
 async def analyze_transaction(transaction_data):
     """Send transaction to fraud detection engine"""
-    from app.ml_orchestrator import get_fraud_cascade_engine
+    # Specifically target the path inside the 'backend' folder
+    from backend.app.ml_orchestrator import get_fraud_cascade_engine
     
     engine = await get_fraud_cascade_engine()
     result = await engine.predict(transaction_data)
@@ -44,12 +45,60 @@ def main():
     
     # Header
     st.title("🛡️ UPI Secure Pay AI")
-    st.title("Fraud Detection Dashboard")
+    st.title("Fraud Detection Cascade Engine")
     
     st.markdown("---")
     
     # Sidebar with inputs
     st.sidebar.header("📝 Transaction Details")
+
+    # Analyze Button
+    if st.sidebar.button("🔍 Analyze Transaction", type="primary", use_container_width=True):
+        with st.spinner("Running Fraud Cascade..."):
+            result = asyncio.run(analyze_transaction(transaction_data))
+            st.session_state.result = result
+    
+    # Display results
+    if st.session_state.result:
+        result = st.session_state.result
+        
+        # 1. Status Banner
+        verdict = result.get("final_verdict", "unknown")
+        stage = result.get("cascade_stage", "UNKNOWN")
+        
+        if verdict == "proceed":
+            st.success(f"### ✅ APPROVED ({stage})")
+        elif verdict == "verify":
+            st.warning(f"### ⚠️ REVIEW NEEDED ({stage})")
+        else:
+            st.error(f"### 🚫 BLOCKED ({stage})")
+        
+        # 2. Risk Metrics
+        col1, col2 = st.columns(2)
+        col1.metric("Risk Score", f"{result.get('risk_score', 0):.1f}%")
+        col2.metric("Latency", f"{result.get('latency_ms', 0)}ms")
+
+        # 3. FIX: Define rules FIRST
+        rules = result.get("safety_rules_triggered", [])
+        
+        # 4. Behavioral Biometrics Alert
+        behavioral_rules = [r for r in rules if any(x in r for x in ["SCAM_", "SCREEN_", "TYPING"])]
+        if behavioral_rules:
+            st.warning(f"🚨 **Behavioral Biometrics Alert:** {', '.join(behavioral_rules)}")
+        
+        # 5. Safety rules triggered
+        if rules:
+            st.warning(f"🛡️ **Safety Rules Triggered:** {', '.join(rules)}")
+        
+        # ... [Keep your Model Breakdown Table code here] ...
+
+        # 6. LLaMA Reasoning Section (Corrected)
+        st.markdown("### 🧠 AI Reasoning & Explanation")
+        llm_reasoning = result.get("llm_reasoning")
+        if llm_reasoning:
+            st.info(llm_reasoning)
+        else:
+            st.info("No AI reasoning available for this transaction.")
     
     # Amount
     amount = st.sidebar.number_input(
@@ -73,6 +122,30 @@ def main():
         index=0
     )
     
+    # Behavioral Biometrics - Scam Detection
+    st.sidebar.markdown("--- Behavioral Biometrics ---")
+    
+    is_on_call = st.sidebar.checkbox(
+        "📞 User is on Phone Call",
+        value=False,
+        help="Check if user is currently on a call (potential scam indicator)"
+    )
+    
+    is_screen_sharing = st.sidebar.checkbox(
+        "🖥️ Screen Sharing Active",
+        value=False,
+        help="Check if user is sharing their screen (potential remote scam)"
+    )
+    
+    typing_velocity = st.sidebar.slider(
+        "⌨️ Typing Velocity (chars/sec)",
+        min_value=0.0,
+        max_value=10.0,
+        value=4.0,
+        step=0.5,
+        help="Normal typing is 2-6 chars/sec. Very slow (<1) or very fast (>8) is suspicious"
+    )
+    
     # Build transaction data
     transaction_data = {
         "sender_id": "user001",
@@ -85,11 +158,15 @@ def main():
         "transaction_type": "P2M",
         "merchant_category": "grocery",
         "device_status": device_status,
+        # Behavioral Biometrics
+        "is_on_call": is_on_call,
+        "is_screen_sharing": is_screen_sharing,
+        "typing_velocity": typing_velocity,
     }
     
     # Analyze Button
     st.sidebar.markdown("---")
-    if st.sidebar.button("🔍 Analyze Transaction", type="primary", use_container_width=True):
+    if st.sidebar.button("🔍 Analyze Transaction", type="primary", use_container_width=True, key="analyze_transaction_btn"):
         with st.spinner("Analyzing transaction..."):
             result = asyncio.run(analyze_transaction(transaction_data))
             st.session_state.result = result
@@ -144,15 +221,44 @@ def main():
         if table_data:
             st.table(table_data)
         
-        # Safety rules triggered
+        # 3. GET RULES FIRST (Fixes the crash)
         rules = result.get("safety_rules_triggered", [])
-        if rules:
-            st.warning(f"🚨 Safety Rules Triggered: {', '.join(rules)}")
         
-        # Decision reason
+        # 4. Behavioral Biometrics Analysis
+        behavioral_rules = [r for r in rules if any(x in r for x in ["SCAM_", "SCREEN_", "TYPING"])]
+        if behavioral_rules:
+            st.warning(f"🚨 **Behavioral Biometrics Alert:** {', '.join(behavioral_rules)}")
+        
+        # 5. Safety rules triggered
+        if rules:
+            st.warning(f"🛡️ **Safety Rules Triggered:** {', '.join(rules)}")
+        
+        # 6. Decision reason
         reason = result.get("decision_reason", "")
         if reason:
-            st.info(f"💡 {reason}")
+            st.info(f"💡 **Decision Logic:** {reason}")
+        
+        # 7. LLaMA Reasoning Section
+        st.markdown("### 🧠 AI Reasoning & Explanation")
+        llm_reasoning = result.get("llm_reasoning", "")
+        if llm_reasoning:
+            st.markdown(f"<div style='background-color: #e8f4fd; padding: 15px; border-radius: 10px; border-left: 5px solid #2196f3;'>{llm_reasoning}</div>", unsafe_allow_html=True)
+        elif "Level 3" in stage:
+            # Fallback logic for when LLaMA isn't explicitly returned
+            st.info("High-risk transaction deep-dived by GNN and Pattern Analysis.")
+            # Generate reasoning based on the analysis
+            reasoning_parts = []
+            if rules:
+                reasoning_parts.append(f"Safety rules triggered: {', '.join(rules)}")
+            scores = result.get("model_scores", {})
+            if scores.get("gnn", 0) > 0.5:
+                reasoning_parts.append(f"Graph analysis detected suspicious network patterns (GNN score: {scores.get('gnn', 0)*100:.1f}%)")
+            if scores.get("llm", 0) > 0.5:
+                reasoning_parts.append(f"AI analysis flagged unusual transaction behavior (LLaMA score: {scores.get('llm', 0)*100:.1f}%)")
+            
+            if reasoning_parts:
+                st.markdown("### 🧠 Reasoning (AI Explanation)")
+                st.markdown(f"<div style='background-color: #f0f2f6; padding: 15px; border-radius: 10px; border-left: 5px solid #6366f1;'>{'. '.join(reasoning_parts)}</div>", unsafe_allow_html=True)
         
         # Latency
         latency = result.get("latency_ms", 0)
