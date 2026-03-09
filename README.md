@@ -37,7 +37,7 @@ UPI Secure Pay AI is a hackathon-ready fraud detection system that combines 5 ad
 | Normal Flow (Approved) | Scam Attempt (Blocked) |
 | :--- | :--- |
 | ![Approved](assets/demo_approved.png) | ![Blocked](assets/demo_blocked.png) |
-| ![Approved](assests/demo_approved-2.png) | ![Blocked](assets/demo_blocked-2.png) |
+| ![Approved](assets/demo_approved-2.png) | ![Blocked](assets/demo_blocked-2.png) |
 | *Level 1 Fast Path (<30ms)* | *SafetyRuleEngine Override* |
 
 ## 🏗️ Architecture
