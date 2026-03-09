@@ -8,6 +8,10 @@ Real-time fraud detection system for UPI (Unified Payments Interface) transactio
 
 ## 🎯 Overview
 
+**Problem:** Traditional UPI fraud detection relies on static, rule-based systems that fail to identify sophisticated social engineering (like screen-sharing scams) and automated bot-attacks.
+
+**Solution:** An AI-first, behavior-aware **Fraud Cascade Engine** that dynamically routes transactions through lightweight ML filters to deep-learning analysis, ensuring <100ms latency without sacrificing security.
+
 UPI Secure Pay AI is a hackathon-ready fraud detection system that combines 5 advanced ML models to detect fraudulent transactions in real-time with >95% accuracy and <100ms response time.
 
 ## ✨ Features
@@ -27,6 +31,13 @@ UPI Secure Pay AI is a hackathon-ready fraud detection system that combines 5 ad
   - Phone call detection during transactions
   - Screen sharing monitoring
   - Typing velocity analysis
+
+## 📸 Demo Highlights
+
+| Normal Flow (Approved) | Scam Attempt (Blocked) |
+| :--- | :--- |
+| ![Approved](assets/demo_approved.png) | ![Blocked](assets/demo_blocked.png) |
+| *Level 1 Fast Path (<30ms)* | *SafetyRuleEngine Override* |
 
 ## 🏗️ Architecture
 
@@ -174,6 +185,9 @@ The SafetyRuleEngine is a **pre-ML gatekeeper** that runs BEFORE any ML models t
 - **Database**: SQLite (async with aiosqlite)
 - **Caching**: Redis
 - **Streaming**: Apache Kafka
+- **Frontend**: Streamlit
+
+> **Note:** Architecture is designed for production-scale deployments using Apache Kafka and Redis. This demo utilizes an asynchronous SQLite database for simplified local testing.
 
 ## 📁 Project Structure
 
