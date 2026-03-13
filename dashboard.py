@@ -27,16 +27,39 @@ def init_session_state():
     """Initialize session state"""
     if 'result' not in st.session_state:
         st.session_state.result = None
+    if 'engine' not in st.session_state:
+        st.session_state.engine = None
 
 
-async def analyze_transaction(transaction_data):
-    """Send transaction to fraud detection engine"""
-    # Specifically target the path inside the 'backend' folder
+async def get_engine():
+    """Get or initialize the fraud cascade engine"""
     from backend.app.ml_orchestrator import get_fraud_cascade_engine
-    
-    engine = await get_fraud_cascade_engine()
+    return await get_fraud_cascade_engine()
+
+
+async def analyze_transaction_async(transaction_data):
+    """Async function to analyze transaction"""
+    engine = await get_engine()
     result = await engine.predict(transaction_data)
     return result
+
+
+def analyze_transaction(transaction_data):
+    """Wrapper to run async function in Streamlit"""
+    try:
+        # Try to get existing event loop
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If loop is running, create a new task
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, analyze_transaction_async(transaction_data))
+                return future.result()
+        else:
+            return asyncio.run(analyze_transaction_async(transaction_data))
+    except RuntimeError:
+        # No event loop exists, create one
+        return asyncio.run(analyze_transaction_async(transaction_data))
 
 
 def main():
@@ -168,7 +191,7 @@ def main():
     st.sidebar.markdown("---")
     if st.sidebar.button("🔍 Analyze Transaction", type="primary", use_container_width=True, key="analyze_transaction_btn"):
         with st.spinner("Analyzing transaction..."):
-            result = asyncio.run(analyze_transaction(transaction_data))
+            result = analyze_transaction(transaction_data)
             st.session_state.result = result
     
     # Display results

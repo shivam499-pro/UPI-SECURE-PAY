@@ -6,7 +6,16 @@ import json
 import asyncio
 from typing import Optional
 from datetime import datetime
-from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
+
+# Make aiokafka optional - will work without it for development
+try:
+    from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
+    KAFKA_AVAILABLE = True
+except ImportError:
+    KAFKA_AVAILABLE = False
+    AIOKafkaProducer = None
+    AIOKafkaConsumer = None
+
 from loguru import logger
 
 from app.config import get_settings
@@ -29,9 +38,13 @@ class Topics:
 
 # ==================== Producer Functions ====================
 
-async def get_producer() -> AIOKafkaProducer:
+async def get_producer() -> Optional[AIOKafkaProducer]:
     """Get Kafka producer instance"""
     global producer
+    
+    if not KAFKA_AVAILABLE:
+        return None
+        
     if producer is None:
         producer = AIOKafkaProducer(
             bootstrap_servers=settings.kafka_bootstrap_servers,
@@ -45,7 +58,7 @@ async def get_producer() -> AIOKafkaProducer:
 async def close_producer():
     """Close Kafka producer"""
     global producer
-    if producer:
+    if producer and KAFKA_AVAILABLE:
         await producer.stop()
         producer = None
 
@@ -53,7 +66,13 @@ async def close_producer():
 async def publish_transaction(transaction: dict) -> bool:
     """Publish raw transaction to Kafka"""
     try:
+        if not KAFKA_AVAILABLE:
+            logger.info(f"Kafka not available, skipping publish: {transaction.get('transaction_id')}")
+            return True
+            
         p = await get_producer()
+        if p is None:
+            return True
         
         # Add timestamp
         transaction['published_at'] = datetime.utcnow().isoformat()
@@ -76,8 +95,13 @@ async def publish_transaction(transaction: dict) -> bool:
 async def publish_scored_transaction(transaction: dict) -> bool:
     """Publish scored transaction to Kafka"""
     try:
+        if not KAFKA_AVAILABLE:
+            return True
+            
         p = await get_producer()
-        
+        if p is None:
+            return True
+            
         await p.send(
             Topics.SCORED_TRANSACTIONS,
             key=transaction.get('transaction_id'),
@@ -96,8 +120,13 @@ async def publish_scored_transaction(transaction: dict) -> bool:
 async def publish_alert(alert: dict) -> bool:
     """Publish fraud alert to Kafka"""
     try:
+        if not KAFKA_AVAILABLE:
+            return True
+            
         p = await get_producer()
-        
+        if p is None:
+            return True
+            
         await p.send(
             Topics.ALERTS,
             key=alert.get('transaction_id'),
