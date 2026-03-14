@@ -12,7 +12,17 @@ from app.kafka.producer import (
     KafkaProducerService,
 )
 
+from app.kafka.consumer import (
+    start_consumer,
+    stop_consumer,
+    consume_messages,
+    get_consumer_stats,
+    reset_consumer_stats,
+    consumer_stats,
+)
+
 __all__ = [
+    # Producer
     "get_producer",
     "close_producer", 
     "publish_transaction",
@@ -20,4 +30,11 @@ __all__ = [
     "publish_alert",
     "Topics",
     "KafkaProducerService",
+    # Consumer
+    "start_consumer",
+    "stop_consumer",
+    "consume_messages",
+    "get_consumer_stats",
+    "reset_consumer_stats",
+    "consumer_stats",
 ]

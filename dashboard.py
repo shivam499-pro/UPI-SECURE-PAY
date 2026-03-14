@@ -7,8 +7,10 @@ A Streamlit-based dashboard for real-time fraud detection.
 import sys
 import os
 
-# Add backend to path for imports
-sys.path.append('backend')
+# Add app to path for imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import streamlit as st
 import asyncio
@@ -33,7 +35,7 @@ def init_session_state():
 
 async def get_engine():
     """Get or initialize the fraud cascade engine"""
-    from backend.app.ml_orchestrator import get_fraud_cascade_engine
+    from app.ml.orchestrator import get_fraud_cascade_engine
     return await get_fraud_cascade_engine()
 
 

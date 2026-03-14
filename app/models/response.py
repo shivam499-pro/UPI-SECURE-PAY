@@ -28,6 +28,11 @@ class FraudCheckResponse(BaseModel):
     processing_time_ms: float = Field(..., description="Processing time in milliseconds")
     timestamp: str = Field(..., description="Response timestamp in ISO format")
     
+    # New fields for FraudCascadeEngine
+    cascade_stage: Optional[str] = Field(None, description="Cascade stage: LEVEL 1, 2, or 3")
+    safety_rules_triggered: Optional[List[str]] = Field(default_factory=list, description="Safety rules triggered")
+    levels_used: Optional[List[str]] = Field(default_factory=list, description="ML levels used in cascade")
+    
     class Config:
         json_schema_extra = {
             "example": {
@@ -36,9 +41,7 @@ class FraudCheckResponse(BaseModel):
                 "risk_score": 92.5,
                 "decision": "block",
                 "reasons": [
-                    "High amount transaction from new device",
-                    "Unusual transaction time (3 AM)",
-                    "Receiver has high fraud reports"
+                    "Critical risk: DEVICE_ROOTED, MERCHANT_SCAM_KEYWORD:scam"
                 ],
                 "model_scores": [
                     {
@@ -55,7 +58,10 @@ class FraudCheckResponse(BaseModel):
                     }
                 ],
                 "processing_time_ms": 45.2,
-                "timestamp": "2026-03-05T18:30:00Z"
+                "timestamp": "2026-03-05T18:30:00Z",
+                "cascade_stage": "LEVEL 3 - HIGH RISK OVERRIDE",
+                "safety_rules_triggered": ["DEVICE_ROOTED", "MERCHANT_SCAM_KEYWORD:scam"],
+                "levels_used": ["SafetyRuleEngine", "Level 3: GNN + LLaMA (OVERRIDE)"]
             }
         }
 

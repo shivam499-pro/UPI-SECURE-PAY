@@ -2,6 +2,6 @@
 UPI Secure Pay AI - Routers Package
 """
 
-from app.routers import health, fraud, analytics
+from app.routers import health, fraud, analytics, kafka
 
-__all__ = ["health", "fraud", "analytics"]
+__all__ = ["health", "fraud", "analytics", "kafka"]

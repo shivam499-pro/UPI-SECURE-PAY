@@ -102,10 +102,18 @@ class Transaction(Base):
     device_id = Column(String(100))
     ip_address = Column(String(45))
     
+    # New fields for FraudCascadeEngine tracking
+    cascade_stage = Column(String(50), nullable=True)  # LEVEL 1, LEVEL 2, LEVEL 3, etc.
+    safety_rules_triggered = Column(Text, nullable=True)  # JSON string of triggered rules
+    levels_used = Column(Text, nullable=True)  # JSON string of ML levels used
+    processing_time_ms = Column(Float, nullable=True)
+    
     __table_args__ = (
         Index("idx_txn_sender_time", "sender_id", "timestamp"),
         Index("idx_txn_receiver_time", "receiver_id", "timestamp"),
         Index("idx_txn_timestamp", "timestamp"),
+        Index("idx_txn_decision", "decision"),
+        Index("idx_txn_fraud_score", "fraud_score"),
     )
 
 

@@ -21,6 +21,20 @@ class TransactionRequest(BaseModel):
     merchant_category: Optional[str] = Field(None, description="Merchant category code")
     ip_address: Optional[str] = Field(None, description="Client IP address")
     
+    # Device security fields (for SafetyRuleEngine)
+    device_status: Optional[str] = Field("normal", description="Device status: normal, rooted, jailbroken")
+    device_jailbroken: Optional[int] = Field(0, description="Is device jailbroken: 0 or 1")
+    device_linked_to_blacklisted: Optional[int] = Field(0, description="Device linked to blacklisted account: 0 or 1")
+    receiver_linked_to_fraud: Optional[int] = Field(0, description="Receiver linked to fraud: 0 or 1")
+    
+    # Account age (for SafetyRuleEngine)
+    account_age_days: Optional[int] = Field(999, description="Account age in days")
+    
+    # Behavioral biometrics (for SafetyRuleEngine - Scam detection)
+    is_on_call: Optional[bool] = Field(False, description="User is on phone call during transaction")
+    is_screen_sharing: Optional[bool] = Field(False, description="Screen sharing is active")
+    typing_velocity: Optional[float] = Field(None, description="Typing velocity in chars/sec")
+    
     @validator('timestamp')
     def validate_timestamp(cls, v):
         """Validate timestamp format"""
@@ -37,6 +51,14 @@ class TransactionRequest(BaseModel):
         if v.upper() not in valid_types:
             raise ValueError(f'Transaction type must be one of: {valid_types}')
         return v.upper()
+    
+    @validator('device_status')
+    def validate_device_status(cls, v):
+        """Validate device status"""
+        valid_statuses = ['normal', 'rooted', 'jailbroken']
+        if v.lower() not in valid_statuses:
+            return 'normal'
+        return v.lower()
 
 
 class FraudCheckRequest(BaseModel):
